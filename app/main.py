@@ -1,24 +1,42 @@
-from fastapi import FastAPI
-from database.database import Base, engine
-from app.routes import colleges, departments, roles, campuses, registrations, logins
+import os
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from database.database import Base, engine
+from app.routes import auth, integrations, research, research_evaluations, research_outputs, users
+
+# Create tables only when explicitly enabled for local/dev convenience.
+db_auto_create = os.getenv("DB_AUTO_CREATE", "true").strip().lower() in {"1", "true", "yes", "on"}
+if db_auto_create:
+    Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Scholar Sphere API",
-    description="CRUD API for user registration and authentication",
-    version="1.0.0"
+    description="ScholarSphere backend API with JWT auth, role management, and research data services",
+    version="2.0.0"
+)
+
+# CORS for browser-based clients (configure via CORS_ALLOW_ORIGINS env var).
+raw_origins = os.getenv("CORS_ALLOW_ORIGINS", "*")
+allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins or ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include routers
-app.include_router(colleges.router)
-app.include_router(departments.router)
-app.include_router(roles.router)
-app.include_router(campuses.router)
-app.include_router(registrations.router)
-app.include_router(logins.router)
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(research.router)
+app.include_router(research_evaluations.router)
+app.include_router(research_outputs.router)
+app.include_router(integrations.router)
 
 
 # ======================== ROOT ENDPOINT ========================
@@ -28,7 +46,7 @@ def read_root():
     """Welcome endpoint"""
     return {
         "message": "Welcome to Scholar Sphere API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs"
     }
 
