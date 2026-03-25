@@ -1,186 +1,265 @@
+from uuid import UUID
+
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from psycopg2 import Error
 
-from app import models
-from app.research_api.schemas import AgendaCreate, PaperCreate, PaperUpdate
-
-
-def create_status(db: Session, status_name: str, description: str | None):
-    existing = db.query(models.Status).filter(models.Status.status_name == status_name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Status already exists")
-    record = models.Status(status_name=status_name, description=description)
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
+from app.db_errors import raise_db_http_error
+from database.database import fetch_all, fetch_one
 
 
-def list_statuses(db: Session):
-    return db.query(models.Status).all()
+def create_research_type(db, name: str, description: str | None):
+    try:
+        row = fetch_one(
+            db,
+            "INSERT INTO research_types (name, description) VALUES (%s, %s) RETURNING id, name, description",
+            (name, description),
+        )
+        db.commit()
+        return row
+    except Error as exc:
+        raise_db_http_error(db, exc)
 
 
-def create_keyword(db: Session, keyword_name: str):
-    existing = db.query(models.Keyword).filter(models.Keyword.keyword_name == keyword_name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Keyword already exists")
-    record = models.Keyword(keyword_name=keyword_name)
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
+def list_research_types(db):
+    return fetch_all(db, "SELECT id, name, description FROM research_types ORDER BY name")
 
 
-def list_keywords(db: Session):
-    return db.query(models.Keyword).all()
+def create_research_output_type(db, name: str, description: str | None):
+    try:
+        row = fetch_one(
+            db,
+            "INSERT INTO research_output_types (name, description) VALUES (%s, %s) RETURNING id, name, description",
+            (name, description),
+        )
+        db.commit()
+        return row
+    except Error as exc:
+        raise_db_http_error(db, exc)
 
 
-def create_author(db: Session, payload):
-    record = models.Author(**payload.model_dump())
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
+def list_research_output_types(db):
+    return fetch_all(db, "SELECT id, name, description FROM research_output_types ORDER BY name")
 
 
-def list_authors(db: Session, skip: int, limit: int):
-    return db.query(models.Author).offset(skip).limit(limit).all()
+def create_author(db, payload):
+    try:
+        row = fetch_one(
+            db,
+            """
+            INSERT INTO authors (user_id, department_id, first_name, middle_name, last_name)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, user_id, department_id, first_name, middle_name, last_name, created_at
+            """,
+            (
+                str(payload.user_id) if payload.user_id else None,
+                str(payload.department_id) if payload.department_id else None,
+                payload.first_name,
+                payload.middle_name,
+                payload.last_name,
+            ),
+        )
+        db.commit()
+        return row
+    except Error as exc:
+        raise_db_http_error(db, exc)
 
 
-def create_researcher(db: Session, payload):
-    existing = db.query(models.Researcher).filter(models.Researcher.email == payload.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Researcher email already exists")
-    record = models.Researcher(**payload.model_dump())
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
-
-
-def list_researchers(
-    db: Session,
-    status_id: int | None,
-    department_id: int | None,
-    campus_id: int | None,
-    skip: int,
-    limit: int,
-):
-    query = db.query(models.Researcher)
-    if status_id is not None:
-        query = query.filter(models.Researcher.status_id == status_id)
-    if department_id is not None:
-        query = query.filter(models.Researcher.department_id == department_id)
-    if campus_id is not None:
-        query = query.filter(models.Researcher.campus_id == campus_id)
-    return query.offset(skip).limit(limit).all()
-
-
-def create_paper(db: Session, payload: PaperCreate, user_id: int):
-    paper = models.Paper(
-        title=payload.title,
-        abstract=payload.abstract,
-        published_at=payload.published_at,
-        department_id=payload.department_id,
-        campus_id=payload.campus_id,
-        status_id=payload.status_id,
-        researcher_id=user_id,
+def list_authors(db, skip: int, limit: int):
+    return fetch_all(
+        db,
+        """
+        SELECT id, user_id, department_id, first_name, middle_name, last_name, created_at
+        FROM authors
+        ORDER BY created_at DESC
+        OFFSET %s LIMIT %s
+        """,
+        (skip, limit),
     )
 
-    if payload.author_ids:
-        authors = db.query(models.Author).filter(models.Author.author_id.in_(payload.author_ids)).all()
-        if len(authors) != len(set(payload.author_ids)):
-            raise HTTPException(status_code=400, detail="One or more authors were not found")
-        paper.authors = authors
 
-    if payload.keyword_ids:
-        keywords = db.query(models.Keyword).filter(models.Keyword.keyword_id.in_(payload.keyword_ids)).all()
-        if len(keywords) != len(set(payload.keyword_ids)):
-            raise HTTPException(status_code=400, detail="One or more keywords were not found")
-        paper.keywords = keywords
-
-    db.add(paper)
-    db.commit()
-    db.refresh(paper)
-    return paper
+def _get_author_ids_for_paper(db, paper_id: str) -> list[UUID]:
+    rows = fetch_all(
+        db,
+        "SELECT author_id FROM research_authors WHERE paper_id = %s ORDER BY author_order NULLS LAST",
+        (paper_id,),
+    )
+    return [row["author_id"] for row in rows]
 
 
-def list_papers(
-    db: Session,
-    q: str | None,
-    status_id: int | None,
-    department_id: int | None,
-    campus_id: int | None,
-    keyword: str | None,
-    skip: int,
-    limit: int,
-):
-    query = db.query(models.Paper)
+def _replace_paper_authors(db, paper_id: str, authors):
+    fetch_one(db, "DELETE FROM research_authors WHERE paper_id = %s RETURNING paper_id", (paper_id,))
+    for author in authors:
+        if isinstance(author, dict):
+            author_id = author.get("author_id")
+            is_primary = author.get("is_primary_author", False)
+            author_order = author.get("author_order")
+        else:
+            author_id = author.author_id
+            is_primary = author.is_primary_author
+            author_order = author.author_order
+
+        fetch_one(
+            db,
+            """
+            INSERT INTO research_authors (paper_id, author_id, is_primary_author, author_order)
+            VALUES (%s, %s, %s, %s)
+            RETURNING paper_id
+            """,
+            (paper_id, str(author_id), is_primary, author_order),
+        )
+
+
+def create_paper(db, payload):
+    try:
+        paper = fetch_one(
+            db,
+            """
+            INSERT INTO research_papers (
+                research_type_id, research_output_type_id, school_year_id, semester_id,
+                title, abstract, keywords, is_active
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, research_type_id, research_output_type_id, school_year_id, semester_id,
+                      title, abstract, keywords, is_active, created_at, updated_at
+            """,
+            (
+                str(payload.research_type_id) if payload.research_type_id else None,
+                str(payload.research_output_type_id) if payload.research_output_type_id else None,
+                str(payload.school_year_id) if payload.school_year_id else None,
+                str(payload.semester_id) if payload.semester_id else None,
+                payload.title,
+                payload.abstract,
+                payload.keywords,
+                payload.is_active,
+            ),
+        )
+
+        if payload.authors:
+            _replace_paper_authors(db, str(paper["id"]), payload.authors)
+
+        db.commit()
+        paper["author_ids"] = _get_author_ids_for_paper(db, str(paper["id"]))
+        return paper
+    except Error as exc:
+        raise_db_http_error(db, exc)
+
+
+def list_papers(db, q: str | None, skip: int, limit: int):
     if q:
-        query = query.filter(models.Paper.title.ilike(f"%{q}%"))
-    if status_id is not None:
-        query = query.filter(models.Paper.status_id == status_id)
-    if department_id is not None:
-        query = query.filter(models.Paper.department_id == department_id)
-    if campus_id is not None:
-        query = query.filter(models.Paper.campus_id == campus_id)
-    if keyword:
-        query = query.join(models.Paper.keywords).filter(models.Keyword.keyword_name.ilike(f"%{keyword}%"))
-    return query.distinct().offset(skip).limit(limit).all()
+        papers = fetch_all(
+            db,
+            """
+            SELECT id, research_type_id, research_output_type_id, school_year_id, semester_id,
+                   title, abstract, keywords, is_active, created_at, updated_at
+            FROM research_papers
+            WHERE title ILIKE %s
+            ORDER BY created_at DESC
+            OFFSET %s LIMIT %s
+            """,
+            (f"%{q}%", skip, limit),
+        )
+    else:
+        papers = fetch_all(
+            db,
+            """
+            SELECT id, research_type_id, research_output_type_id, school_year_id, semester_id,
+                   title, abstract, keywords, is_active, created_at, updated_at
+            FROM research_papers
+            ORDER BY created_at DESC
+            OFFSET %s LIMIT %s
+            """,
+            (skip, limit),
+        )
+
+    for paper in papers:
+        paper["author_ids"] = _get_author_ids_for_paper(db, str(paper["id"]))
+    return papers
 
 
-def get_paper(db: Session, paper_id: int):
-    paper = db.query(models.Paper).filter(models.Paper.paper_id == paper_id).first()
+def get_paper(db, paper_id: str):
+    paper = fetch_one(
+        db,
+        """
+        SELECT id, research_type_id, research_output_type_id, school_year_id, semester_id,
+               title, abstract, keywords, is_active, created_at, updated_at
+        FROM research_papers
+        WHERE id = %s
+        """,
+        (paper_id,),
+    )
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
+    paper["author_ids"] = _get_author_ids_for_paper(db, paper_id)
     return paper
 
 
-def update_paper(db: Session, paper_id: int, payload: PaperUpdate):
-    paper = get_paper(db, paper_id)
-    update_data = payload.model_dump(exclude_unset=True, exclude={"author_ids", "keyword_ids"})
-    for key, value in update_data.items():
-        setattr(paper, key, value)
+def update_paper(db, paper_id: str, payload):
+    current = get_paper(db, paper_id)
+    update_data = payload.model_dump(exclude_unset=True)
 
-    if payload.author_ids is not None:
-        authors = db.query(models.Author).filter(models.Author.author_id.in_(payload.author_ids)).all() if payload.author_ids else []
-        if payload.author_ids and len(authors) != len(set(payload.author_ids)):
-            raise HTTPException(status_code=400, detail="One or more authors were not found")
-        paper.authors = authors
+    final_data = {
+        "research_type_id": str(update_data.get("research_type_id")) if update_data.get("research_type_id") else current["research_type_id"],
+        "research_output_type_id": str(update_data.get("research_output_type_id")) if update_data.get("research_output_type_id") else current["research_output_type_id"],
+        "school_year_id": str(update_data.get("school_year_id")) if update_data.get("school_year_id") else current["school_year_id"],
+        "semester_id": str(update_data.get("semester_id")) if update_data.get("semester_id") else current["semester_id"],
+        "title": update_data.get("title", current["title"]),
+        "abstract": update_data.get("abstract", current["abstract"]),
+        "keywords": update_data.get("keywords", current["keywords"]),
+        "is_active": update_data.get("is_active", current["is_active"]),
+    }
 
-    if payload.keyword_ids is not None:
-        keywords = db.query(models.Keyword).filter(models.Keyword.keyword_id.in_(payload.keyword_ids)).all() if payload.keyword_ids else []
-        if payload.keyword_ids and len(keywords) != len(set(payload.keyword_ids)):
-            raise HTTPException(status_code=400, detail="One or more keywords were not found")
-        paper.keywords = keywords
+    try:
+        paper = fetch_one(
+            db,
+            """
+            UPDATE research_papers
+            SET research_type_id = %s,
+                research_output_type_id = %s,
+                school_year_id = %s,
+                semester_id = %s,
+                title = %s,
+                abstract = %s,
+                keywords = %s,
+                is_active = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING id, research_type_id, research_output_type_id, school_year_id, semester_id,
+                      title, abstract, keywords, is_active, created_at, updated_at
+            """,
+            (
+                final_data["research_type_id"],
+                final_data["research_output_type_id"],
+                final_data["school_year_id"],
+                final_data["semester_id"],
+                final_data["title"],
+                final_data["abstract"],
+                final_data["keywords"],
+                final_data["is_active"],
+                paper_id,
+            ),
+        )
 
-    db.commit()
-    db.refresh(paper)
-    return paper
+        if "authors" in update_data:
+            _replace_paper_authors(db, paper_id, update_data["authors"] or [])
+
+        db.commit()
+        paper["author_ids"] = _get_author_ids_for_paper(db, paper_id)
+        return paper
+    except Error as exc:
+        raise_db_http_error(db, exc)
 
 
-def delete_paper(db: Session, paper_id: int):
-    paper = get_paper(db, paper_id)
-    db.delete(paper)
-    db.commit()
-
-
-def create_agenda(db: Session, payload: AgendaCreate, created_by: int):
-    agenda = models.Agenda(
-        title=payload.title,
-        details=payload.details,
-        due_date=payload.due_date,
-        status_id=payload.status_id,
-        created_by=created_by,
+def delete_paper(db, paper_id: str):
+    deleted = fetch_one(
+        db,
+        "SELECT id FROM research_papers WHERE id = %s",
+        (paper_id,),
     )
-    db.add(agenda)
-    db.commit()
-    db.refresh(agenda)
-    return agenda
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Paper not found")
 
-
-def list_agendas(db: Session, status_id: int | None, skip: int, limit: int):
-    query = db.query(models.Agenda)
-    if status_id is not None:
-        query = query.filter(models.Agenda.status_id == status_id)
-    return query.offset(skip).limit(limit).all()
+    try:
+        fetch_one(db, "DELETE FROM research_papers WHERE id = %s RETURNING id", (paper_id,))
+        db.commit()
+    except Error as exc:
+        raise_db_http_error(db, exc)

@@ -10,7 +10,7 @@ FastAPI backend for authentication, user management, research records, research 
 - Research evaluations CRUD and filters (`/research-evaluations/*`)
 - Research outputs CRUD and filters (`/research-outputs/*`)
 - API key protected integration endpoints (`/integrations/*`)
-- PostgreSQL + SQLAlchemy ORM
+- PostgreSQL + raw SQL (`psycopg2`)
 - Pydantic validation
 - Interactive API docs
 
@@ -55,7 +55,7 @@ API_KEY=replace_with_a_secure_random_key
 JWT_SECRET=replace_with_a_secure_jwt_secret
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=60
-DB_AUTO_CREATE=true
+DB_AUTO_CREATE=false
 CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
@@ -92,37 +92,69 @@ python -m uvicorn app.main:app --reload
 
 ### Research
 
-- `POST /research/statuses`
-- `GET /research/statuses`
-- `POST /research/keywords`
-- `GET /research/keywords`
+- `POST /research/types`
+- `GET /research/types`
+- `POST /research/output-types`
+- `GET /research/output-types`
 - `POST /research/authors`
 - `GET /research/authors`
-- `POST /research/researchers`
-- `GET /research/researchers`
 - `POST /research/papers`
 - `GET /research/papers`
 - `GET /research/papers/{paper_id}`
 - `PUT /research/papers/{paper_id}`
 - `DELETE /research/papers/{paper_id}`
-- `POST /research/agendas`
-- `GET /research/agendas`
 
 ### Research Outputs
 
-- `POST /research-outputs/`
+- `POST /research-outputs/` (maps to `publications`)
 - `GET /research-outputs/`
-- `GET /research-outputs/{paper_id}`
-- `PUT /research-outputs/{paper_id}`
-- `DELETE /research-outputs/{paper_id}`
+- `GET /research-outputs/{publication_id}`
+- `PUT /research-outputs/{publication_id}`
+- `DELETE /research-outputs/{publication_id}`
+
+### Presentations
+
+- `POST /presentations/`
+- `GET /presentations/`
+- `GET /presentations/{presentation_id}`
+- `PUT /presentations/{presentation_id}`
+- `DELETE /presentations/{presentation_id}`
 
 ### Research Evaluations
 
 - `POST /research-evaluations/`
 - `GET /research-evaluations/`
-- `GET /research-evaluations/{re_id}`
-- `PUT /research-evaluations/{re_id}`
-- `DELETE /research-evaluations/{re_id}`
+- `GET /research-evaluations/{evaluation_id}`
+- `PUT /research-evaluations/{evaluation_id}`
+- `DELETE /research-evaluations/{evaluation_id}`
+
+### Lookups
+
+- `POST /lookups/campuses`
+- `GET /lookups/campuses`
+- `GET /lookups/campuses/{campus_id}`
+- `PUT /lookups/campuses/{campus_id}`
+- `DELETE /lookups/campuses/{campus_id}`
+- `POST /lookups/colleges`
+- `GET /lookups/colleges`
+- `GET /lookups/colleges/{college_id}`
+- `PUT /lookups/colleges/{college_id}`
+- `DELETE /lookups/colleges/{college_id}`
+- `POST /lookups/departments`
+- `GET /lookups/departments`
+- `GET /lookups/departments/{department_id}`
+- `PUT /lookups/departments/{department_id}`
+- `DELETE /lookups/departments/{department_id}`
+- `POST /lookups/school-years`
+- `GET /lookups/school-years`
+- `GET /lookups/school-years/{school_year_id}`
+- `PUT /lookups/school-years/{school_year_id}`
+- `DELETE /lookups/school-years/{school_year_id}`
+- `POST /lookups/semesters`
+- `GET /lookups/semesters`
+- `GET /lookups/semesters/{semester_id}`
+- `PUT /lookups/semesters/{semester_id}`
+- `DELETE /lookups/semesters/{semester_id}`
 
 ### Integrations (API key required)
 
@@ -166,26 +198,17 @@ curl -X POST http://localhost:8000/research-evaluations/ \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access_token>" \
   -d '{
-    "author_id": "A1,A2",
-    "campus_id": 1,
-    "college_id": 1,
-    "department_id": "CS",
-    "school_year_id": "2025-2026",
-    "semester_id": "1st",
-    "title_of_research": "AI Impact Study",
-    "authorship_form_link": "https://example.com/authorship",
-    "evaluation_form": "https://example.com/evaluation",
-    "full_paper": "https://example.com/full-paper",
-    "turnitin_report": "https://example.com/turnitin",
-    "grammarly_report": "https://example.com/grammarly",
-    "journal_conference_info": "Conference details"
+    "paper_id": "00000000-0000-0000-0000-000000000000",
+    "status": "Pending",
+    "document_links": {"turnitin": "https://example.com/turnitin"},
+    "authorship_from_link": "https://example.com/authorship",
+    "journal_conference_info": {"venue": "Sample Conference"}
   }'
 ```
 ```
 
 ## Notes
 
-- Tables are created on startup via SQLAlchemy metadata.
-- Table auto-creation can be toggled with `DB_AUTO_CREATE`.
-- `database/schema.sql` is kept as reference schema.
+- Tables are created on startup by executing `database/schema.sql` when `DB_AUTO_CREATE=true` (default is false).
+- `database/schema.sql` is the source of truth for schema.
 - Pagination is supported via `skip` and `limit` on list endpoints.

@@ -1,3 +1,3 @@
-from app.users_api.schemas import UpdateUserRoleRequest, UserResponse, UserRole
+from app.users_api.schemas import UpdateUserRoleRequest, UserResponse
 
-__all__ = ["UserRole", "UserResponse", "UpdateUserRoleRequest"]
+__all__ = ["UserResponse", "UpdateUserRoleRequest"]

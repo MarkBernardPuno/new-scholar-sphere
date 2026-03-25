@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
 from app.integrations_api import service
 from app.security import require_api_key
@@ -10,7 +9,7 @@ router = APIRouter(prefix="/integrations", tags=["Integrations"])
 
 
 @router.post("/populate-defaults", dependencies=[Depends(require_api_key)])
-def populate_defaults(db: Session = Depends(get_db)):
+def populate_defaults(db=Depends(get_db)):
     """Seed default roles and statuses for scripts/tests."""
     return service.populate_defaults(db)
 

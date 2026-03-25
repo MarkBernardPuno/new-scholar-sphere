@@ -1,127 +1,80 @@
 from datetime import datetime
+from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
-class StatusBase(BaseModel):
-    status_name: str
+class ResearchTypeCreate(BaseModel):
+    name: str
     description: str | None = None
 
 
-class StatusCreate(StatusBase):
-    pass
+class ResearchTypeResponse(ResearchTypeCreate):
+    id: UUID
 
 
-class StatusResponse(StatusBase):
-    status_id: int
-
-    class Config:
-        from_attributes = True
+class ResearchOutputTypeCreate(BaseModel):
+    name: str
+    description: str | None = None
 
 
-class KeywordBase(BaseModel):
-    keyword_name: str
+class ResearchOutputTypeResponse(ResearchOutputTypeCreate):
+    id: UUID
 
 
-class KeywordCreate(KeywordBase):
-    pass
+class AuthorCreate(BaseModel):
+    user_id: UUID | None = None
+    department_id: UUID | None = None
+    first_name: str
+    middle_name: str | None = None
+    last_name: str
 
 
-class KeywordResponse(KeywordBase):
-    keyword_id: int
-
-    class Config:
-        from_attributes = True
-
-
-class AuthorBase(BaseModel):
-    full_name: str
-    email: EmailStr | None = None
-    affiliation: str | None = None
-
-
-class AuthorCreate(AuthorBase):
-    pass
-
-
-class AuthorResponse(AuthorBase):
-    author_id: int
-
-    class Config:
-        from_attributes = True
-
-
-class ResearcherBase(BaseModel):
-    full_name: str
-    email: EmailStr
-    department_id: int | None = None
-    campus_id: int | None = None
-    status_id: int | None = None
-
-
-class ResearcherCreate(ResearcherBase):
-    pass
-
-
-class ResearcherResponse(ResearcherBase):
-    researcher_id: int
+class AuthorResponse(AuthorCreate):
+    id: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class ResearchAuthorLink(BaseModel):
+    author_id: UUID
+    is_primary_author: bool = False
+    author_order: int | None = None
 
 
-class PaperBase(BaseModel):
+class PaperCreate(BaseModel):
+    research_type_id: UUID | None = None
+    research_output_type_id: UUID | None = None
+    school_year_id: UUID | None = None
+    semester_id: UUID | None = None
     title: str
     abstract: str | None = None
-    published_at: datetime | None = None
-    department_id: int | None = None
-    campus_id: int | None = None
-    status_id: int | None = None
-
-
-class PaperCreate(PaperBase):
-    author_ids: list[int] = Field(default_factory=list)
-    keyword_ids: list[int] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    is_active: bool = True
+    authors: list[ResearchAuthorLink] = Field(default_factory=list)
 
 
 class PaperUpdate(BaseModel):
+    research_type_id: UUID | None = None
+    research_output_type_id: UUID | None = None
+    school_year_id: UUID | None = None
+    semester_id: UUID | None = None
     title: str | None = None
     abstract: str | None = None
-    published_at: datetime | None = None
-    department_id: int | None = None
-    campus_id: int | None = None
-    status_id: int | None = None
-    author_ids: list[int] | None = None
-    keyword_ids: list[int] | None = None
+    keywords: list[str] | None = None
+    is_active: bool | None = None
+    authors: list[ResearchAuthorLink] | None = None
 
 
-class PaperResponse(PaperBase):
-    paper_id: int
-    researcher_id: int | None = None
-    created_at: datetime
-    authors: list[AuthorResponse] = Field(default_factory=list)
-    keywords: list[KeywordResponse] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True
-
-
-class AgendaBase(BaseModel):
+class PaperResponse(BaseModel):
+    id: UUID
+    research_type_id: UUID | None = None
+    research_output_type_id: UUID | None = None
+    school_year_id: UUID | None = None
+    semester_id: UUID | None = None
     title: str
-    details: str | None = None
-    due_date: datetime | None = None
-    status_id: int | None = None
-
-
-class AgendaCreate(AgendaBase):
-    pass
-
-
-class AgendaResponse(AgendaBase):
-    agenda_id: int
-    created_by: int | None = None
+    abstract: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+    is_active: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    updated_at: datetime
+    author_ids: list[UUID] = Field(default_factory=list)

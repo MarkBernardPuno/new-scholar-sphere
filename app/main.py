@@ -3,13 +3,22 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database.database import Base, engine
-from app.routes import auth, integrations, research, research_evaluations, research_outputs, users
+from database.database import init_schema
+from app.routes import (
+    auth,
+    integrations,
+    lookups,
+    presentations,
+    research,
+    research_evaluations,
+    research_outputs,
+    users,
+)
 
 # Create tables only when explicitly enabled for local/dev convenience.
-db_auto_create = os.getenv("DB_AUTO_CREATE", "true").strip().lower() in {"1", "true", "yes", "on"}
+db_auto_create = os.getenv("DB_AUTO_CREATE", "false").strip().lower() in {"1", "true", "yes", "on"}
 if db_auto_create:
-    Base.metadata.create_all(bind=engine)
+    init_schema("database/schema.sql")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -36,6 +45,8 @@ app.include_router(users.router)
 app.include_router(research.router)
 app.include_router(research_evaluations.router)
 app.include_router(research_outputs.router)
+app.include_router(lookups.router)
+app.include_router(presentations.router)
 app.include_router(integrations.router)
 
 

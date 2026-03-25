@@ -1,15 +1,14 @@
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
 
-from app import models
-from database.database import get_db
+from database.database import fetch_one, get_db
 
 
 # Use a stable default hash scheme; keep bcrypt verification support for legacy hashes.
@@ -50,7 +49,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(user_id: int, email: str, role_name: Optional[str]) -> str:
+def create_access_token(user_id: UUID, email: str, role_name: Optional[str]) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
@@ -73,7 +72,7 @@ def decode_token(token: str) -> dict:
         ) from exc
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
+def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_db)) -> dict:
     payload = decode_token(token)
     user_id = payload.get("sub")
     if not user_id:
@@ -83,7 +82,25 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = db.query(models.User).filter(models.User.user_id == int(user_id)).first()
+    try:
+        parsed_user_id = UUID(user_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    user = fetch_one(
+        db,
+        """
+        SELECT u.id AS user_id, u.full_name, u.email, u.password_hash, u.role_id, r.name AS role_name, u.created_at
+        FROM users u
+        LEFT JOIN roles r ON r.id = u.role_id
+        WHERE u.id = %s
+        """,
+        (str(parsed_user_id),),
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -93,8 +110,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-def require_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
-    role_name = current_user.role.role_name.lower() if current_user.role else ""
+def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    role_name = (current_user.get("role_name") or "").lower()
     if role_name != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

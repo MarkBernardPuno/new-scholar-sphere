@@ -1,40 +1,60 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from psycopg2 import Error
 
-from app import models
 from app.auth import create_access_token, hash_password, verify_password
 from app.auth_api.schemas import LoginRequest, TokenResponse
+from app.db_errors import raise_db_http_error
+from database.database import fetch_one
 
 
-def signup_user(db: Session, full_name: str, email: str, password: str):
-    existing = db.query(models.User).filter(models.User.email == email).first()
+def signup_user(db, full_name: str, email: str, password: str):
+    existing = fetch_one(db, "SELECT id FROM users WHERE email = %s", (email,))
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Public signup is always assigned the non-privileged default role.
-    default_role = db.query(models.Role).filter(models.Role.role_name == "researcher").first()
-    if not default_role:
-        default_role = models.Role(role_name="researcher")
-        db.add(default_role)
-        db.flush()
+    try:
+        default_role = fetch_one(db, "SELECT id, name FROM roles WHERE name = %s", ("researcher",))
+        if not default_role:
+            default_role = fetch_one(
+                db,
+                "INSERT INTO roles (name, description) VALUES (%s, %s) RETURNING id, name",
+                ("researcher", "Default public signup role"),
+            )
 
-    user = models.User(
-        full_name=full_name,
-        email=email,
-        password_hash=hash_password(password),
-        role_id=default_role.role_id if default_role else None,
+        user = fetch_one(
+            db,
+            """
+            INSERT INTO users (department_id, role_id, full_name, email, password_hash)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id AS user_id, full_name, email, role_id, created_at
+            """,
+            (
+                None,
+                default_role["id"] if default_role else None,
+                full_name,
+                email,
+                hash_password(password),
+            ),
+        )
+        db.commit()
+        return user
+    except Error as exc:
+        raise_db_http_error(db, exc, conflict_detail="Email already registered")
+
+
+def login_user(db, payload: LoginRequest) -> TokenResponse:
+    user = fetch_one(
+        db,
+        """
+        SELECT u.id AS user_id, u.email, u.password_hash, r.name AS role_name
+        FROM users u
+        LEFT JOIN roles r ON r.id = u.role_id
+        WHERE u.email = %s
+        """,
+        (payload.email,),
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-def login_user(db: Session, payload: LoginRequest) -> TokenResponse:
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
-    if not user or not verify_password(payload.password, user.password_hash):
+    if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    role_name = user.role.role_name if user.role else None
-    token = create_access_token(user.user_id, user.email, role_name)
+    token = create_access_token(user["user_id"], user["email"], user.get("role_name"))
     return TokenResponse(access_token=token)

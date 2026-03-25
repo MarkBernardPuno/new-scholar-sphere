@@ -61,21 +61,17 @@ Integration contract for teammates consuming this backend.
 
 ### Research
 
-- POST /research/statuses
-- GET /research/statuses
-- POST /research/keywords
-- GET /research/keywords
+- POST /research/types
+- GET /research/types
+- POST /research/output-types
+- GET /research/output-types
 - POST /research/authors
 - GET /research/authors
-- POST /research/researchers
-- GET /research/researchers
 - POST /research/papers
 - GET /research/papers
 - GET /research/papers/{paper_id}
 - PUT /research/papers/{paper_id}
 - DELETE /research/papers/{paper_id}
-- POST /research/agendas
-- GET /research/agendas
 
 Rules:
 - All /research/* endpoints require Bearer token.
@@ -85,62 +81,80 @@ Rules:
 
 - POST /research-outputs/
 - GET /research-outputs/
-- GET /research-outputs/{paper_id}
-- PUT /research-outputs/{paper_id}
-- DELETE /research-outputs/{paper_id}
+- GET /research-outputs/{publication_id}
+- PUT /research-outputs/{publication_id}
+- DELETE /research-outputs/{publication_id}
 
 Rules:
 - Auth: Bearer token required for all endpoints.
-- List filter query params:
-  - school_year_id
-  - semester_id
-  - output_type
-  - research_type_id
-  - college_id
-  - program_department_id
-  - search
-  - skip, limit
-- research_output_type_id accepted values:
-  - Presentation
-  - Publication
-  - Intl Presentation
-  - Intl Publication
+- List filter query params: paper_id, doi, search, skip, limit
+- Backed by publications table (`publications`).
 - doi is unique when provided.
+
+### Presentations
+
+- POST /presentations/
+- GET /presentations/
+- GET /presentations/{presentation_id}
+- PUT /presentations/{presentation_id}
+- DELETE /presentations/{presentation_id}
+
+Rules:
+- Auth: Bearer token required for all endpoints.
+- Backed by presentations table (`presentations`).
+- paper_id must reference existing research paper.
 
 ### Research Evaluations
 
 - POST /research-evaluations/
 - GET /research-evaluations/
-- GET /research-evaluations/{re_id}
-- PUT /research-evaluations/{re_id}
-- DELETE /research-evaluations/{re_id}
+- GET /research-evaluations/{evaluation_id}
+- PUT /research-evaluations/{evaluation_id}
+- DELETE /research-evaluations/{evaluation_id}
 
 Rules:
 - Auth: Bearer token required for all endpoints.
-- campus_id and college_id must reference existing records.
-- List filter query params:
-  - campus_id
-  - college_id
-  - department_id
-  - school_year_id
-  - semester_id
-  - search
-  - skip, limit
+- paper_id must reference an existing `research_papers` record.
+- List filter query params: paper_id, status_value, search, skip, limit
 
 Create/Update payload fields:
-- author_id
-- campus_id
-- college_id
-- department_id
-- school_year_id
-- semester_id
-- title_of_research
-- authorship_form_link
-- evaluation_form
-- full_paper
-- turnitin_report
-- grammarly_report
+- paper_id
+- status
+- document_links
+- authorship_from_link
 - journal_conference_info
+
+### Lookups
+
+- POST /lookups/campuses
+- GET /lookups/campuses
+- GET /lookups/campuses/{campus_id}
+- PUT /lookups/campuses/{campus_id}
+- DELETE /lookups/campuses/{campus_id}
+- POST /lookups/colleges
+- GET /lookups/colleges
+- GET /lookups/colleges/{college_id}
+- PUT /lookups/colleges/{college_id}
+- DELETE /lookups/colleges/{college_id}
+- POST /lookups/departments
+- GET /lookups/departments
+- GET /lookups/departments/{department_id}
+- PUT /lookups/departments/{department_id}
+- DELETE /lookups/departments/{department_id}
+- POST /lookups/school-years
+- GET /lookups/school-years
+- GET /lookups/school-years/{school_year_id}
+- PUT /lookups/school-years/{school_year_id}
+- DELETE /lookups/school-years/{school_year_id}
+- POST /lookups/semesters
+- GET /lookups/semesters
+- GET /lookups/semesters/{semester_id}
+- PUT /lookups/semesters/{semester_id}
+- DELETE /lookups/semesters/{semester_id}
+
+Rules:
+- Auth: Bearer token required for all endpoints.
+- Parent FK references are enforced: colleges.campus_id and departments.college_id.
 
 ### Integrations
 
