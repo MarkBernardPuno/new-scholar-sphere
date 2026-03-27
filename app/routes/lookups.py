@@ -37,12 +37,20 @@ def list_campuses(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
+<<<<<<< HEAD
+=======
+    _: dict = Depends(get_current_user),
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
 ):
     return service.list_campuses(db, skip, limit)
 
 
 @router.get("/campuses/{campus_id}", response_model=CampusResponse)
+<<<<<<< HEAD
 def get_campus(campus_id: UUID, db=Depends(get_db)):
+=======
+def get_campus(campus_id: UUID, db=Depends(get_db), _: dict = Depends(get_current_user)):
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
     return service.get_campus(db, str(campus_id))
 
 
@@ -68,12 +76,20 @@ def list_colleges(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
+<<<<<<< HEAD
+=======
+    _: dict = Depends(get_current_user),
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
 ):
     return service.list_colleges(db, str(campus_id) if campus_id else None, skip, limit)
 
 
 @router.get("/colleges/{college_id}", response_model=CollegeResponse)
+<<<<<<< HEAD
 def get_college(college_id: UUID, db=Depends(get_db)):
+=======
+def get_college(college_id: UUID, db=Depends(get_db), _: dict = Depends(get_current_user)):
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
     return service.get_college(db, str(college_id))
 
 
@@ -99,12 +115,20 @@ def list_departments(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
+<<<<<<< HEAD
+=======
+    _: dict = Depends(get_current_user),
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
 ):
     return service.list_departments(db, str(college_id) if college_id else None, skip, limit)
 
 
 @router.get("/departments/{department_id}", response_model=DepartmentResponse)
+<<<<<<< HEAD
 def get_department(department_id: UUID, db=Depends(get_db)):
+=======
+def get_department(department_id: UUID, db=Depends(get_db), _: dict = Depends(get_current_user)):
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
     return service.get_department(db, str(department_id))
 
 
@@ -134,12 +158,20 @@ def list_school_years(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
+<<<<<<< HEAD
+=======
+    _: dict = Depends(get_current_user),
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
 ):
     return service.list_school_years(db, skip, limit)
 
 
 @router.get("/school-years/{school_year_id}", response_model=SchoolYearResponse)
+<<<<<<< HEAD
 def get_school_year(school_year_id: UUID, db=Depends(get_db)):
+=======
+def get_school_year(school_year_id: UUID, db=Depends(get_db), _: dict = Depends(get_current_user)):
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
     return service.get_school_year(db, str(school_year_id))
 
 
@@ -169,12 +201,20 @@ def list_semesters(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
+<<<<<<< HEAD
+=======
+    _: dict = Depends(get_current_user),
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
 ):
     return service.list_semesters(db, skip, limit)
 
 
 @router.get("/semesters/{semester_id}", response_model=SemesterResponse)
+<<<<<<< HEAD
 def get_semester(semester_id: UUID, db=Depends(get_db)):
+=======
+def get_semester(semester_id: UUID, db=Depends(get_db), _: dict = Depends(get_current_user)):
+>>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
     return service.get_semester(db, str(semester_id))
 
 
