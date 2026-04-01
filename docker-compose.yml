@@ -19,7 +19,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:admin123@db:5432/NewScholarSphere
       CORS_ALLOW_ORIGINS: "http://localhost:5175,https://firmamental-unicameral-kane.ngrok-free.dev"
-      DB_AUTO_CREATE: "true"
+      DB_AUTO_CREATE: "false"
     ports:
       - "8000:8000"
     depends_on:

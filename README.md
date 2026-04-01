@@ -68,6 +68,12 @@ CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 python -m uvicorn app.main:app --reload
 ```
 
+Optional one-time schema bootstrap (manual):
+
+```bash
+python -c "from database.database import init_schema; init_schema('database/schema.sql'); print('schema initialized')"
+```
+
 ## API Docs
 
 - Swagger UI: http://localhost:8000/docs
@@ -156,6 +162,15 @@ python -m uvicorn app.main:app --reload
 - `GET /lookups/semesters/{semester_id}`
 - `PUT /lookups/semesters/{semester_id}`
 - `DELETE /lookups/semesters/{semester_id}`
+- `GET /lookups/dropdowns?resources=campuses,colleges,departments,school_years,semesters`
+
+### Compact Collection Endpoints
+
+- `GET /research/collections?resources=types,output_types,authors,papers`
+- `GET /presentations/collections`
+- `GET /research-outputs/collections`
+- `GET /research-evaluations/collections`
+- `GET /users/collections`
 
 ### Integrations
 
@@ -206,3 +221,5 @@ curl -X POST http://localhost:8000/research-evaluations/ \
 - Tables are created on startup by executing `database/schema.sql` when `DB_AUTO_CREATE=true` (default is false).
 - `database/schema.sql` is the source of truth for schema.
 - Pagination is supported via `skip` and `limit` on list endpoints.
+- Recommended frontend pattern: use compact collection endpoints for reads/dropdowns and keep normal CRUD routes for mutations.
+- Keep `DB_AUTO_CREATE=false` in shared/prod to prevent accidental schema replacement.

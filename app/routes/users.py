@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from app.users_api import service
@@ -7,12 +9,27 @@ from database.database import get_db
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+DbSession = Annotated[object, Depends(get_db)]
+SkipParam = Annotated[int, Query(0, ge=0)]
+LimitParam = Annotated[int, Query(20, ge=1, le=100)]
+
+
+@router.get("/collections", response_model=dict[str, list[dict]])
+def get_user_collections(
+    skip: SkipParam,
+    limit: LimitParam,
+    db: DbSession,
+):
+    return {
+        "users": service.list_users(db, skip, limit),
+    }
+
 
 @router.get("/", response_model=list[UserResponse])
 def list_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    db=Depends(get_db),
+    skip: SkipParam,
+    limit: LimitParam,
+    db: DbSession,
 ):
     return service.list_users(db, skip, limit)
 
@@ -20,7 +37,7 @@ def list_users(
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
-    db=Depends(get_db),
+    db: DbSession,
 ):
     return service.get_user(db, user_id)
 
@@ -29,6 +46,6 @@ def get_user(
 def update_user_role(
     user_id: int,
     payload: UpdateUserRoleRequest,
-    db=Depends(get_db),
+    db: DbSession,
 ):
     return service.update_user_role(db, user_id, payload.role_id)
