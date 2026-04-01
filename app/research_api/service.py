@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import HTTPException
 from psycopg2 import Error
 
@@ -51,8 +49,8 @@ def create_author(db, payload):
             RETURNING id, user_id, department_id, first_name, middle_name, last_name, created_at
             """,
             (
-                str(payload.user_id) if payload.user_id else None,
-                str(payload.department_id) if payload.department_id else None,
+                payload.user_id,
+                payload.department_id,
                 payload.first_name,
                 payload.middle_name,
                 payload.last_name,
@@ -77,7 +75,7 @@ def list_authors(db, skip: int, limit: int):
     )
 
 
-def _get_author_ids_for_paper(db, paper_id: str) -> list[UUID]:
+def _get_author_ids_for_paper(db, paper_id: int) -> list[int]:
     rows = fetch_all(
         db,
         "SELECT author_id FROM research_authors WHERE paper_id = %s ORDER BY author_order NULLS LAST",
@@ -86,7 +84,7 @@ def _get_author_ids_for_paper(db, paper_id: str) -> list[UUID]:
     return [row["author_id"] for row in rows]
 
 
-def _replace_paper_authors(db, paper_id: str, authors):
+def _replace_paper_authors(db, paper_id: int, authors):
     fetch_one(db, "DELETE FROM research_authors WHERE paper_id = %s RETURNING paper_id", (paper_id,))
     for author in authors:
         if isinstance(author, dict):
@@ -105,7 +103,7 @@ def _replace_paper_authors(db, paper_id: str, authors):
             VALUES (%s, %s, %s, %s)
             RETURNING paper_id
             """,
-            (paper_id, str(author_id), is_primary, author_order),
+            (paper_id, author_id, is_primary, author_order),
         )
 
 
@@ -123,10 +121,10 @@ def create_paper(db, payload):
                       title, abstract, keywords, is_active, created_at, updated_at
             """,
             (
-                str(payload.research_type_id) if payload.research_type_id else None,
-                str(payload.research_output_type_id) if payload.research_output_type_id else None,
-                str(payload.school_year_id) if payload.school_year_id else None,
-                str(payload.semester_id) if payload.semester_id else None,
+                payload.research_type_id,
+                payload.research_output_type_id,
+                payload.school_year_id,
+                payload.semester_id,
                 payload.title,
                 payload.abstract,
                 payload.keywords,
@@ -135,10 +133,10 @@ def create_paper(db, payload):
         )
 
         if payload.authors:
-            _replace_paper_authors(db, str(paper["id"]), payload.authors)
+            _replace_paper_authors(db, paper["id"], payload.authors)
 
         db.commit()
-        paper["author_ids"] = _get_author_ids_for_paper(db, str(paper["id"]))
+        paper["author_ids"] = _get_author_ids_for_paper(db, paper["id"])
         return paper
     except Error as exc:
         raise_db_http_error(db, exc)
@@ -172,11 +170,11 @@ def list_papers(db, q: str | None, skip: int, limit: int):
         )
 
     for paper in papers:
-        paper["author_ids"] = _get_author_ids_for_paper(db, str(paper["id"]))
+        paper["author_ids"] = _get_author_ids_for_paper(db, paper["id"])
     return papers
 
 
-def get_paper(db, paper_id: str):
+def get_paper(db, paper_id: int):
     paper = fetch_one(
         db,
         """
@@ -193,15 +191,15 @@ def get_paper(db, paper_id: str):
     return paper
 
 
-def update_paper(db, paper_id: str, payload):
+def update_paper(db, paper_id: int, payload):
     current = get_paper(db, paper_id)
     update_data = payload.model_dump(exclude_unset=True)
 
     final_data = {
-        "research_type_id": str(update_data.get("research_type_id")) if update_data.get("research_type_id") else current["research_type_id"],
-        "research_output_type_id": str(update_data.get("research_output_type_id")) if update_data.get("research_output_type_id") else current["research_output_type_id"],
-        "school_year_id": str(update_data.get("school_year_id")) if update_data.get("school_year_id") else current["school_year_id"],
-        "semester_id": str(update_data.get("semester_id")) if update_data.get("semester_id") else current["semester_id"],
+        "research_type_id": update_data.get("research_type_id") if update_data.get("research_type_id") else current["research_type_id"],
+        "research_output_type_id": update_data.get("research_output_type_id") if update_data.get("research_output_type_id") else current["research_output_type_id"],
+        "school_year_id": update_data.get("school_year_id") if update_data.get("school_year_id") else current["school_year_id"],
+        "semester_id": update_data.get("semester_id") if update_data.get("semester_id") else current["semester_id"],
         "title": update_data.get("title", current["title"]),
         "abstract": update_data.get("abstract", current["abstract"]),
         "keywords": update_data.get("keywords", current["keywords"]),
@@ -249,7 +247,7 @@ def update_paper(db, paper_id: str, payload):
         raise_db_http_error(db, exc)
 
 
-def delete_paper(db, paper_id: str):
+def delete_paper(db, paper_id: int):
     deleted = fetch_one(
         db,
         "SELECT id FROM research_papers WHERE id = %s",

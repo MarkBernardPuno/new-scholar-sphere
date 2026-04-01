@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
-from app.auth import get_current_user
 from app.auth_api import service
 from app.auth_api.schemas import LoginRequest, SignupRequest, TokenResponse
+from app.users_api import service as users_service
 from app.users_api.schemas import UserResponse
 from database.database import get_db
 
@@ -21,5 +21,5 @@ def login(payload: LoginRequest, db=Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-def me(current_user: dict = Depends(get_current_user)):
-    return current_user
+def me(user_id: int = Query(..., ge=1), db=Depends(get_db)):
+    return users_service.get_user(db, user_id)

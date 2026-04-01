@@ -1,8 +1,5 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, Query
 
-from app.auth import get_current_user
 from app.research_api import service
 from app.research_api.schemas import (
     AuthorCreate,
@@ -25,7 +22,6 @@ router = APIRouter(prefix="/research", tags=["Research"])
 def create_research_type(
     payload: ResearchTypeCreate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.create_research_type(db, payload.name, payload.description)
 
@@ -33,7 +29,6 @@ def create_research_type(
 @router.get("/types", response_model=list[ResearchTypeResponse])
 def list_research_types(
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.list_research_types(db)
 
@@ -42,7 +37,6 @@ def list_research_types(
 def create_research_output_type(
     payload: ResearchOutputTypeCreate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.create_research_output_type(db, payload.name, payload.description)
 
@@ -50,7 +44,6 @@ def create_research_output_type(
 @router.get("/output-types", response_model=list[ResearchOutputTypeResponse])
 def list_research_output_types(
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.list_research_output_types(db)
 
@@ -59,7 +52,6 @@ def list_research_output_types(
 def create_author(
     payload: AuthorCreate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.create_author(db, payload)
 
@@ -69,7 +61,6 @@ def list_authors(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.list_authors(db, skip, limit)
 
@@ -78,7 +69,6 @@ def list_authors(
 def create_paper(
     payload: PaperCreate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.create_paper(db, payload)
 
@@ -89,35 +79,31 @@ def list_papers(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.list_papers(db, q, skip, limit)
 
 
 @router.get("/papers/{paper_id}", response_model=PaperResponse)
 def get_paper(
-    paper_id: UUID,
+    paper_id: int,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
-    return service.get_paper(db, str(paper_id))
+    return service.get_paper(db, paper_id)
 
 
 @router.put("/papers/{paper_id}", response_model=PaperResponse)
 def update_paper(
-    paper_id: UUID,
+    paper_id: int,
     payload: PaperUpdate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
-    return service.update_paper(db, str(paper_id), payload)
+    return service.update_paper(db, paper_id, payload)
 
 
 @router.delete("/papers/{paper_id}", status_code=204)
 def delete_paper(
-    paper_id: UUID,
+    paper_id: int,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
-    service.delete_paper(db, str(paper_id))
+    service.delete_paper(db, paper_id)
     return None

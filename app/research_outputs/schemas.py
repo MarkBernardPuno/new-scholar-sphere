@@ -1,11 +1,10 @@
 from datetime import date, datetime
-from uuid import UUID
 
 from pydantic import BaseModel
 
 
 class ResearchOutputBase(BaseModel):
-    paper_id: UUID
+    paper_id: int
     doi: str | None = None
     manuscript_link: str | None = None
     journal_publisher: str | None = None
@@ -26,7 +25,7 @@ class ResearchOutputCreate(ResearchOutputBase):
 
 
 class ResearchOutputUpdate(BaseModel):
-    paper_id: UUID | None = None
+    paper_id: int | None = None
     doi: str | None = None
     manuscript_link: str | None = None
     journal_publisher: str | None = None
@@ -43,6 +42,6 @@ class ResearchOutputUpdate(BaseModel):
 
 
 class ResearchOutputResponse(ResearchOutputBase):
-    id: UUID
+    id: int
     created_at: datetime
     updated_at: datetime

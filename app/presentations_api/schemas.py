@@ -1,11 +1,10 @@
 from datetime import date, datetime
-from uuid import UUID
 
 from pydantic import BaseModel
 
 
 class PresentationBase(BaseModel):
-    paper_id: UUID
+    paper_id: int
     venue: str | None = None
     conference_name: str | None = None
     presentation_date: date | None = None
@@ -16,12 +15,12 @@ class PresentationCreate(PresentationBase):
 
 
 class PresentationUpdate(BaseModel):
-    paper_id: UUID | None = None
+    paper_id: int | None = None
     venue: str | None = None
     conference_name: str | None = None
     presentation_date: date | None = None
 
 
 class PresentationResponse(PresentationBase):
-    id: UUID
+    id: int
     created_at: datetime

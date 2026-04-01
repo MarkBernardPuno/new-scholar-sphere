@@ -18,7 +18,7 @@ def list_users(db, skip: int, limit: int):
     )
 
 
-def get_user(db, user_id: str):
+def get_user(db, user_id: int):
     user = fetch_one(
         db,
         """
@@ -35,7 +35,7 @@ def get_user(db, user_id: str):
     return user
 
 
-def update_user_role(db, user_id: str, role_id: str):
+def update_user_role(db, user_id: int, role_id: int):
     user = get_user(db, user_id)
     role = fetch_one(db, "SELECT id, name FROM roles WHERE id = %s", (role_id,))
     if not role:

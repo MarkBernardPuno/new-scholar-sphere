@@ -1,11 +1,10 @@
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel
 
 
 class ResearchEvaluationBase(BaseModel):
-    paper_id: UUID
+    paper_id: int
     status: str = "Pending"
     document_links: dict | None = None
     authorship_from_link: str | None = None
@@ -17,7 +16,7 @@ class ResearchEvaluationCreate(ResearchEvaluationBase):
 
 
 class ResearchEvaluationUpdate(BaseModel):
-    paper_id: UUID | None = None
+    paper_id: int | None = None
     status: str | None = None
     document_links: dict | None = None
     authorship_from_link: str | None = None
@@ -25,6 +24,6 @@ class ResearchEvaluationUpdate(BaseModel):
 
 
 class ResearchEvaluationResponse(ResearchEvaluationBase):
-    id: UUID
+    id: int
     created_at: datetime
     updated_at: datetime

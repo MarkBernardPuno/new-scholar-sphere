@@ -6,7 +6,7 @@ from database.database import fetch_all, fetch_one
 
 
 def create_presentation(db, payload):
-    paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (str(payload.paper_id),))
+    paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (payload.paper_id,))
     if not paper:
         raise HTTPException(status_code=400, detail="Paper not found")
 
@@ -18,7 +18,7 @@ def create_presentation(db, payload):
             VALUES (%s, %s, %s, %s)
             RETURNING id, paper_id, venue, conference_name, presentation_date, created_at
             """,
-            (str(payload.paper_id), payload.venue, payload.conference_name, payload.presentation_date),
+            (payload.paper_id, payload.venue, payload.conference_name, payload.presentation_date),
         )
         db.commit()
         return row
@@ -26,7 +26,7 @@ def create_presentation(db, payload):
         raise_db_http_error(db, exc, conflict_detail="Presentation already exists for this paper")
 
 
-def list_presentations(db, paper_id: str | None, skip: int, limit: int):
+def list_presentations(db, paper_id: int | None, skip: int, limit: int):
     return fetch_all(
         db,
         """
@@ -40,7 +40,7 @@ def list_presentations(db, paper_id: str | None, skip: int, limit: int):
     )
 
 
-def get_presentation(db, presentation_id: str):
+def get_presentation(db, presentation_id: int):
     row = fetch_one(
         db,
         """
@@ -55,11 +55,11 @@ def get_presentation(db, presentation_id: str):
     return row
 
 
-def update_presentation(db, presentation_id: str, payload):
+def update_presentation(db, presentation_id: int, payload):
     current = get_presentation(db, presentation_id)
     data = payload.model_dump(exclude_unset=True)
 
-    next_paper_id = str(data["paper_id"]) if data.get("paper_id") else str(current["paper_id"])
+    next_paper_id = data["paper_id"] if data.get("paper_id") else current["paper_id"]
     paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (next_paper_id,))
     if not paper:
         raise HTTPException(status_code=400, detail="Paper not found")
@@ -90,7 +90,7 @@ def update_presentation(db, presentation_id: str, payload):
         raise_db_http_error(db, exc, conflict_detail="Presentation already exists for this paper")
 
 
-def delete_presentation(db, presentation_id: str):
+def delete_presentation(db, presentation_id: int):
     try:
         row = fetch_one(db, "DELETE FROM presentations WHERE id = %s RETURNING id", (presentation_id,))
         if not row:

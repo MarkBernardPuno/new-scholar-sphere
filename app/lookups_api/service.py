@@ -24,20 +24,21 @@ def create_campus(db, payload):
         raise_db_http_error(db, exc)
 
 
-def list_campuses(db, skip: int, limit: int):
+def list_campuses(db, skip: int, limit: int, active_only: bool):
     return fetch_all(
         db,
         """
         SELECT id, name, address, is_active, created_at
         FROM campuses
-        ORDER BY created_at DESC
+        WHERE (%s = FALSE OR is_active = TRUE)
+        ORDER BY name ASC, created_at DESC
         OFFSET %s LIMIT %s
         """,
-        (skip, limit),
+        (active_only, skip, limit),
     )
 
 
-def get_campus(db, campus_id: str):
+def get_campus(db, campus_id: int):
     row = fetch_one(
         db,
         "SELECT id, name, address, is_active, created_at FROM campuses WHERE id = %s",
@@ -48,7 +49,7 @@ def get_campus(db, campus_id: str):
     return row
 
 
-def update_campus(db, campus_id: str, payload):
+def update_campus(db, campus_id: int, payload):
     current = get_campus(db, campus_id)
     data = payload.model_dump(exclude_unset=True)
 
@@ -76,7 +77,7 @@ def update_campus(db, campus_id: str, payload):
         raise_db_http_error(db, exc)
 
 
-def delete_campus(db, campus_id: str):
+def delete_campus(db, campus_id: int):
     try:
         row = fetch_one(db, "DELETE FROM campuses WHERE id = %s RETURNING id", (campus_id,))
         if not row:
@@ -89,7 +90,7 @@ def delete_campus(db, campus_id: str):
 # Colleges
 
 def create_college(db, payload):
-    campus = fetch_one(db, "SELECT id FROM campuses WHERE id = %s", (str(payload.campus_id),))
+    campus = fetch_one(db, "SELECT id FROM campuses WHERE id = %s", (payload.campus_id,))
     if not campus:
         raise HTTPException(status_code=400, detail="Campus not found")
 
@@ -101,7 +102,7 @@ def create_college(db, payload):
             VALUES (%s, %s, %s)
             RETURNING id, campus_id, name, is_active, created_at
             """,
-            (str(payload.campus_id), payload.name, payload.is_active),
+            (payload.campus_id, payload.name, payload.is_active),
         )
         db.commit()
         return row
@@ -109,21 +110,22 @@ def create_college(db, payload):
         raise_db_http_error(db, exc)
 
 
-def list_colleges(db, campus_id: str | None, skip: int, limit: int):
+def list_colleges(db, campus_id: int | None, skip: int, limit: int, active_only: bool):
     return fetch_all(
         db,
         """
         SELECT id, campus_id, name, is_active, created_at
         FROM colleges
         WHERE (%s IS NULL OR campus_id = %s)
-        ORDER BY created_at DESC
+          AND (%s = FALSE OR is_active = TRUE)
+        ORDER BY name ASC, created_at DESC
         OFFSET %s LIMIT %s
         """,
-        (campus_id, campus_id, skip, limit),
+        (campus_id, campus_id, active_only, skip, limit),
     )
 
 
-def get_college(db, college_id: str):
+def get_college(db, college_id: int):
     row = fetch_one(
         db,
         "SELECT id, campus_id, name, is_active, created_at FROM colleges WHERE id = %s",
@@ -134,11 +136,11 @@ def get_college(db, college_id: str):
     return row
 
 
-def update_college(db, college_id: str, payload):
+def update_college(db, college_id: int, payload):
     current = get_college(db, college_id)
     data = payload.model_dump(exclude_unset=True)
 
-    next_campus_id = str(data["campus_id"]) if data.get("campus_id") else str(current["campus_id"])
+    next_campus_id = data["campus_id"] if data.get("campus_id") else current["campus_id"]
     campus = fetch_one(db, "SELECT id FROM campuses WHERE id = %s", (next_campus_id,))
     if not campus:
         raise HTTPException(status_code=400, detail="Campus not found")
@@ -167,7 +169,7 @@ def update_college(db, college_id: str, payload):
         raise_db_http_error(db, exc)
 
 
-def delete_college(db, college_id: str):
+def delete_college(db, college_id: int):
     try:
         row = fetch_one(db, "DELETE FROM colleges WHERE id = %s RETURNING id", (college_id,))
         if not row:
@@ -180,7 +182,7 @@ def delete_college(db, college_id: str):
 # Departments
 
 def create_department(db, payload):
-    college = fetch_one(db, "SELECT id FROM colleges WHERE id = %s", (str(payload.college_id),))
+    college = fetch_one(db, "SELECT id FROM colleges WHERE id = %s", (payload.college_id,))
     if not college:
         raise HTTPException(status_code=400, detail="College not found")
 
@@ -192,7 +194,7 @@ def create_department(db, payload):
             VALUES (%s, %s, %s)
             RETURNING id, college_id, name, is_active, created_at
             """,
-            (str(payload.college_id), payload.name, payload.is_active),
+            (payload.college_id, payload.name, payload.is_active),
         )
         db.commit()
         return row
@@ -200,21 +202,22 @@ def create_department(db, payload):
         raise_db_http_error(db, exc)
 
 
-def list_departments(db, college_id: str | None, skip: int, limit: int):
+def list_departments(db, college_id: int | None, skip: int, limit: int, active_only: bool):
     return fetch_all(
         db,
         """
         SELECT id, college_id, name, is_active, created_at
         FROM departments
         WHERE (%s IS NULL OR college_id = %s)
-        ORDER BY created_at DESC
+          AND (%s = FALSE OR is_active = TRUE)
+        ORDER BY name ASC, created_at DESC
         OFFSET %s LIMIT %s
         """,
-        (college_id, college_id, skip, limit),
+        (college_id, college_id, active_only, skip, limit),
     )
 
 
-def get_department(db, department_id: str):
+def get_department(db, department_id: int):
     row = fetch_one(
         db,
         "SELECT id, college_id, name, is_active, created_at FROM departments WHERE id = %s",
@@ -225,11 +228,11 @@ def get_department(db, department_id: str):
     return row
 
 
-def update_department(db, department_id: str, payload):
+def update_department(db, department_id: int, payload):
     current = get_department(db, department_id)
     data = payload.model_dump(exclude_unset=True)
 
-    next_college_id = str(data["college_id"]) if data.get("college_id") else str(current["college_id"])
+    next_college_id = data["college_id"] if data.get("college_id") else current["college_id"]
     college = fetch_one(db, "SELECT id FROM colleges WHERE id = %s", (next_college_id,))
     if not college:
         raise HTTPException(status_code=400, detail="College not found")
@@ -258,7 +261,7 @@ def update_department(db, department_id: str, payload):
         raise_db_http_error(db, exc)
 
 
-def delete_department(db, department_id: str):
+def delete_department(db, department_id: int):
     try:
         row = fetch_one(db, "DELETE FROM departments WHERE id = %s RETURNING id", (department_id,))
         if not row:
@@ -300,14 +303,14 @@ def list_school_years(db, skip: int, limit: int):
     )
 
 
-def get_school_year(db, school_year_id: str):
+def get_school_year(db, school_year_id: int):
     row = fetch_one(db, "SELECT id, year_from, year_to FROM school_years WHERE id = %s", (school_year_id,))
     if not row:
         raise HTTPException(status_code=404, detail="School year not found")
     return row
 
 
-def update_school_year(db, school_year_id: str, payload):
+def update_school_year(db, school_year_id: int, payload):
     current = get_school_year(db, school_year_id)
     data = payload.model_dump(exclude_unset=True)
 
@@ -333,7 +336,7 @@ def update_school_year(db, school_year_id: str, payload):
         raise_db_http_error(db, exc, conflict_detail="School year already exists")
 
 
-def delete_school_year(db, school_year_id: str):
+def delete_school_year(db, school_year_id: int):
     try:
         row = fetch_one(db, "DELETE FROM school_years WHERE id = %s RETURNING id", (school_year_id,))
         if not row:
@@ -366,14 +369,14 @@ def list_semesters(db, skip: int, limit: int):
     )
 
 
-def get_semester(db, semester_id: str):
+def get_semester(db, semester_id: int):
     row = fetch_one(db, "SELECT id, name FROM semesters WHERE id = %s", (semester_id,))
     if not row:
         raise HTTPException(status_code=404, detail="Semester not found")
     return row
 
 
-def update_semester(db, semester_id: str, payload):
+def update_semester(db, semester_id: int, payload):
     current = get_semester(db, semester_id)
     data = payload.model_dump(exclude_unset=True)
 
@@ -394,7 +397,7 @@ def update_semester(db, semester_id: str, payload):
         raise_db_http_error(db, exc)
 
 
-def delete_semester(db, semester_id: str):
+def delete_semester(db, semester_id: int):
     try:
         row = fetch_one(db, "DELETE FROM semesters WHERE id = %s RETURNING id", (semester_id,))
         if not row:

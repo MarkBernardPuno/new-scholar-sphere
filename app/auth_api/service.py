@@ -56,5 +56,5 @@ def login_user(db, payload: LoginRequest) -> TokenResponse:
     if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token(user["user_id"], user["email"], user.get("role_name"))
+    token = create_access_token(int(user["user_id"]), user["email"], user.get("role_name"))
     return TokenResponse(access_token=token)

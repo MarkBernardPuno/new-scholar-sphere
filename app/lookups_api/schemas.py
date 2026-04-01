@@ -1,5 +1,4 @@
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -21,12 +20,12 @@ class CampusUpdate(BaseModel):
 
 
 class CampusResponse(CampusBase):
-    id: UUID
+    id: int
     created_at: datetime
 
 
 class CollegeBase(BaseModel):
-    campus_id: UUID
+    campus_id: int
     name: str = Field(min_length=1, max_length=255)
     is_active: bool = True
 
@@ -36,18 +35,18 @@ class CollegeCreate(CollegeBase):
 
 
 class CollegeUpdate(BaseModel):
-    campus_id: UUID | None = None
+    campus_id: int | None = None
     name: str | None = Field(default=None, min_length=1, max_length=255)
     is_active: bool | None = None
 
 
 class CollegeResponse(CollegeBase):
-    id: UUID
+    id: int
     created_at: datetime
 
 
 class DepartmentBase(BaseModel):
-    college_id: UUID
+    college_id: int
     name: str = Field(min_length=1, max_length=255)
     is_active: bool = True
 
@@ -57,13 +56,13 @@ class DepartmentCreate(DepartmentBase):
 
 
 class DepartmentUpdate(BaseModel):
-    college_id: UUID | None = None
+    college_id: int | None = None
     name: str | None = Field(default=None, min_length=1, max_length=255)
     is_active: bool | None = None
 
 
 class DepartmentResponse(DepartmentBase):
-    id: UUID
+    id: int
     created_at: datetime
 
 
@@ -82,7 +81,7 @@ class SchoolYearUpdate(BaseModel):
 
 
 class SchoolYearResponse(SchoolYearBase):
-    id: UUID
+    id: int
 
 
 class SemesterBase(BaseModel):
@@ -98,4 +97,4 @@ class SemesterUpdate(BaseModel):
 
 
 class SemesterResponse(SemesterBase):
-    id: UUID
+    id: int

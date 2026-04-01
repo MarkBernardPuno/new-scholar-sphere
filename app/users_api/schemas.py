@@ -1,17 +1,16 @@
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
 
 
 class UserResponse(BaseModel):
-    user_id: UUID
+    user_id: int
     full_name: str
     email: EmailStr
-    role_id: UUID | None = None
+    role_id: int | None = None
     role_name: str | None = None
     created_at: datetime
 
 
 class UpdateUserRoleRequest(BaseModel):
-    role_id: UUID
+    role_id: int

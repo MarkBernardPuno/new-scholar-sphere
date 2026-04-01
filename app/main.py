@@ -27,12 +27,6 @@ app = FastAPI(
     version="2.0.0"
 )
 
-<<<<<<< HEAD
-# UNIVERSAL CORS FOR DEVELOPMENT: Allow all origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for dev/testing
-=======
 # CORS for browser-based clients (configure via CORS_ALLOW_ORIGINS env var).
 raw_origins = os.getenv("CORS_ALLOW_ORIGINS", "*")
 allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
@@ -40,7 +34,6 @@ allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins or ["*"],
->>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

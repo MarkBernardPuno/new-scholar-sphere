@@ -1,5 +1,4 @@
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +9,7 @@ class ResearchTypeCreate(BaseModel):
 
 
 class ResearchTypeResponse(ResearchTypeCreate):
-    id: UUID
+    id: int
 
 
 class ResearchOutputTypeCreate(BaseModel):
@@ -19,33 +18,33 @@ class ResearchOutputTypeCreate(BaseModel):
 
 
 class ResearchOutputTypeResponse(ResearchOutputTypeCreate):
-    id: UUID
+    id: int
 
 
 class AuthorCreate(BaseModel):
-    user_id: UUID | None = None
-    department_id: UUID | None = None
+    user_id: int | None = None
+    department_id: int | None = None
     first_name: str
     middle_name: str | None = None
     last_name: str
 
 
 class AuthorResponse(AuthorCreate):
-    id: UUID
+    id: int
     created_at: datetime
 
 
 class ResearchAuthorLink(BaseModel):
-    author_id: UUID
+    author_id: int
     is_primary_author: bool = False
     author_order: int | None = None
 
 
 class PaperCreate(BaseModel):
-    research_type_id: UUID | None = None
-    research_output_type_id: UUID | None = None
-    school_year_id: UUID | None = None
-    semester_id: UUID | None = None
+    research_type_id: int | None = None
+    research_output_type_id: int | None = None
+    school_year_id: int | None = None
+    semester_id: int | None = None
     title: str
     abstract: str | None = None
     keywords: list[str] = Field(default_factory=list)
@@ -54,10 +53,10 @@ class PaperCreate(BaseModel):
 
 
 class PaperUpdate(BaseModel):
-    research_type_id: UUID | None = None
-    research_output_type_id: UUID | None = None
-    school_year_id: UUID | None = None
-    semester_id: UUID | None = None
+    research_type_id: int | None = None
+    research_output_type_id: int | None = None
+    school_year_id: int | None = None
+    semester_id: int | None = None
     title: str | None = None
     abstract: str | None = None
     keywords: list[str] | None = None
@@ -66,15 +65,15 @@ class PaperUpdate(BaseModel):
 
 
 class PaperResponse(BaseModel):
-    id: UUID
-    research_type_id: UUID | None = None
-    research_output_type_id: UUID | None = None
-    school_year_id: UUID | None = None
-    semester_id: UUID | None = None
+    id: int
+    research_type_id: int | None = None
+    research_output_type_id: int | None = None
+    school_year_id: int | None = None
+    semester_id: int | None = None
     title: str
     abstract: str | None = None
     keywords: list[str] = Field(default_factory=list)
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    author_ids: list[UUID] = Field(default_factory=list)
+    author_ids: list[int] = Field(default_factory=list)

@@ -1,15 +1,16 @@
 # Scholar Sphere API
 
-FastAPI backend for authentication, user management, research records, research outputs, and integration hooks.
+FastAPI backend for user management, research records, research outputs, and integration hooks.
 
 ## Features
 
-- JWT authentication (`/auth/*`)
-- Role-aware user operations (`/users/*`)
+- Public API endpoints for frontend integration (no token required)
+- Integer auto-increment IDs across resources
+- User operations (`/users/*`)
 - Research module CRUD and filters (`/research/*`)
 - Research evaluations CRUD and filters (`/research-evaluations/*`)
 - Research outputs CRUD and filters (`/research-outputs/*`)
-- API key protected integration endpoints (`/integrations/*`)
+- Public integration endpoints (`/integrations/*`)
 - PostgreSQL + raw SQL (`psycopg2`)
 - Pydantic validation
 - Interactive API docs
@@ -82,13 +83,13 @@ python -m uvicorn app.main:app --reload
 
 - `POST /auth/signup`
 - `POST /auth/login`
-- `GET /auth/me`
+- `GET /auth/me?user_id=<int>`
 
 ### Users
 
 - `GET /users/`
 - `GET /users/{user_id}`
-- `PATCH /users/{user_id}/role` (admin)
+- `PATCH /users/{user_id}/role`
 
 ### Research
 
@@ -156,16 +157,10 @@ python -m uvicorn app.main:app --reload
 - `PUT /lookups/semesters/{semester_id}`
 - `DELETE /lookups/semesters/{semester_id}`
 
-### Integrations (API key required)
+### Integrations
 
 - `POST /integrations/populate-defaults`
 - `POST /integrations/email/test`
-
-Use request header:
-
-```http
-X-API-Key: <your_api_key>
-```
 
 ## Quick Smoke Test
 
@@ -185,20 +180,19 @@ curl -X POST http://localhost:8000/auth/login \
   -d '{"email":"test@example.com","password":"Pass123!"}'
 ```
 
-Use returned bearer token on protected routes:
+Fetch user profile (public):
 
 ```bash
-curl http://localhost:8000/auth/me \
-  -H "Authorization: Bearer <access_token>"
+curl "http://localhost:8000/auth/me?user_id=1"
+```
 
-Create research evaluation (protected):
+Create research evaluation (public):
 
 ```bash
 curl -X POST http://localhost:8000/research-evaluations/ \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <access_token>" \
   -d '{
-    "paper_id": "00000000-0000-0000-0000-000000000000",
+    "paper_id": 1,
     "status": "Pending",
     "document_links": {"turnitin": "https://example.com/turnitin"},
     "authorship_from_link": "https://example.com/authorship",

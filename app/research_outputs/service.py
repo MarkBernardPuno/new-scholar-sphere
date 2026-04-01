@@ -6,7 +6,7 @@ from database.database import fetch_all, fetch_one
 
 
 def create_research_output(db, payload):
-    paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (str(payload.paper_id),))
+    paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (payload.paper_id,))
     if not paper:
         raise HTTPException(status_code=400, detail="Paper not found")
 
@@ -31,7 +31,7 @@ def create_research_output(db, payload):
                       created_at, updated_at
             """,
             (
-                str(payload.paper_id),
+                payload.paper_id,
                 payload.doi,
                 payload.manuscript_link,
                 payload.journal_publisher,
@@ -53,7 +53,7 @@ def create_research_output(db, payload):
         raise_db_http_error(db, exc, conflict_detail="Publication already exists for this paper or DOI")
 
 
-def list_research_outputs(db, paper_id: str | None, doi: str | None, search: str | None, skip: int, limit: int):
+def list_research_outputs(db, paper_id: int | None, doi: str | None, search: str | None, skip: int, limit: int):
     query = """
         SELECT id, paper_id, doi, manuscript_link, journal_publisher, volume,
                issue_number, page_number, publication_date, indexing, cite_score,
@@ -80,7 +80,7 @@ def list_research_outputs(db, paper_id: str | None, doi: str | None, search: str
     return fetch_all(db, query, params)
 
 
-def get_research_output(db, publication_id: str):
+def get_research_output(db, publication_id: int):
     row = fetch_one(
         db,
         """
@@ -98,11 +98,11 @@ def get_research_output(db, publication_id: str):
     return row
 
 
-def update_research_output(db, publication_id: str, payload):
+def update_research_output(db, publication_id: int, payload):
     current = get_research_output(db, publication_id)
     data = payload.model_dump(exclude_unset=True)
 
-    next_paper_id = str(data.get("paper_id")) if data.get("paper_id") else str(current["paper_id"])
+    next_paper_id = data.get("paper_id") if data.get("paper_id") else current["paper_id"]
     next_doi = data.get("doi", current["doi"])
 
     if next_doi and next_doi != current["doi"]:
@@ -160,7 +160,7 @@ def update_research_output(db, publication_id: str, payload):
         raise_db_http_error(db, exc, conflict_detail="Publication already exists for this paper or DOI")
 
 
-def delete_research_output(db, publication_id: str):
+def delete_research_output(db, publication_id: int):
     try:
         deleted = fetch_one(db, "DELETE FROM publications WHERE id = %s RETURNING id", (publication_id,))
         if not deleted:

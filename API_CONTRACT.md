@@ -8,12 +8,11 @@ Integration contract for teammates consuming this backend.
 - Swagger: /docs
 - ReDoc: /redoc
 
-## Auth Rules
+## Access Rules
 
-- Bearer token (most protected endpoints):
-  - Authorization: Bearer <access_token>
-- API key (integration endpoints only):
-  - X-API-Key: <api_key>
+- All endpoints are public for frontend integration.
+- No Bearer token is required on CRUD endpoints.
+- No API key is required on integrations endpoints.
 
 ## Global Request Rules
 
@@ -42,20 +41,21 @@ Integration contract for teammates consuming this backend.
   - Body: email, password
   - Success: 200 (access_token, token_type)
 - GET /auth/me
-  - Auth: Bearer
+  - Auth: None
+  - Query: user_id (int)
   - Success: 200
 
 ### Users
 
 - GET /users/
-  - Auth: Bearer
+  - Auth: None
   - Query: skip, limit
   - Success: 200
 - GET /users/{user_id}
-  - Auth: Bearer
+  - Auth: None
   - Success: 200
 - PATCH /users/{user_id}/role
-  - Auth: Bearer + admin role
+  - Auth: None
   - Body: role_id
   - Success: 200
 
@@ -74,7 +74,7 @@ Integration contract for teammates consuming this backend.
 - DELETE /research/papers/{paper_id}
 
 Rules:
-- All /research/* endpoints require Bearer token.
+- All /research/* endpoints are public.
 - List endpoints support global pagination rules.
 
 ### Research Outputs
@@ -86,7 +86,7 @@ Rules:
 - DELETE /research-outputs/{publication_id}
 
 Rules:
-- Auth: Bearer token required for all endpoints.
+- Auth: None.
 - List filter query params: paper_id, doi, search, skip, limit
 - Backed by publications table (`publications`).
 - doi is unique when provided.
@@ -100,7 +100,7 @@ Rules:
 - DELETE /presentations/{presentation_id}
 
 Rules:
-- Auth: Bearer token required for all endpoints.
+- Auth: None.
 - Backed by presentations table (`presentations`).
 - paper_id must reference existing research paper.
 
@@ -113,7 +113,7 @@ Rules:
 - DELETE /research-evaluations/{evaluation_id}
 
 Rules:
-- Auth: Bearer token required for all endpoints.
+- Auth: None.
 - paper_id must reference an existing `research_papers` record.
 - List filter query params: paper_id, status_value, search, skip, limit
 
@@ -153,15 +153,15 @@ Create/Update payload fields:
 - DELETE /lookups/semesters/{semester_id}
 
 Rules:
-- Auth: Bearer token required for all endpoints.
+- Auth: None.
 - Parent FK references are enforced: colleges.campus_id and departments.college_id.
 
 ### Integrations
 
 - POST /integrations/populate-defaults
-  - Auth: X-API-Key
+  - Auth: None
 - POST /integrations/email/test
-  - Auth: X-API-Key
+  - Auth: None
   - Query: recipient
 
 ## Environment Contract
@@ -177,6 +177,5 @@ Rules:
 ## Team Handoff Steps
 
 1. Share this file and .env.example with teammates.
-2. Integrate login first, then attach Bearer token on protected routes.
-3. Use X-API-Key only for /integrations/* endpoints.
-4. Validate integration with a smoke test: signup, login, auth/me, research-outputs CRUD, research-evaluations CRUD.
+2. Use integer IDs in all request path params and relationship fields.
+3. Validate integration with a smoke test: signup, login, auth/me?user_id=<id>, research-outputs CRUD, research-evaluations CRUD.

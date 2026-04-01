@@ -1,8 +1,5 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, Query, status
 
-from app.auth import get_current_user
 from app.research_evaluations import service
 from app.research_evaluations.schemas import (
     ResearchEvaluationCreate,
@@ -19,24 +16,22 @@ router = APIRouter(prefix="/research-evaluations", tags=["Research Evaluations"]
 def create_research_evaluation(
     payload: ResearchEvaluationCreate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.create_research_evaluation(db, payload)
 
 
 @router.get("/", response_model=list[ResearchEvaluationResponse])
 def list_research_evaluations(
-    paper_id: UUID | None = None,
+    paper_id: int | None = None,
     status_value: str | None = None,
     search: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
     return service.list_research_evaluations(
         db,
-        str(paper_id) if paper_id else None,
+        paper_id,
         status_value,
         search,
         skip,
@@ -46,28 +41,25 @@ def list_research_evaluations(
 
 @router.get("/{evaluation_id}", response_model=ResearchEvaluationResponse)
 def get_research_evaluation(
-    evaluation_id: UUID,
+    evaluation_id: int,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
-    return service.get_research_evaluation(db, str(evaluation_id))
+    return service.get_research_evaluation(db, evaluation_id)
 
 
 @router.put("/{evaluation_id}", response_model=ResearchEvaluationResponse)
 def update_research_evaluation(
-    evaluation_id: UUID,
+    evaluation_id: int,
     payload: ResearchEvaluationUpdate,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
-    return service.update_research_evaluation(db, str(evaluation_id), payload)
+    return service.update_research_evaluation(db, evaluation_id, payload)
 
 
 @router.delete("/{evaluation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_research_evaluation(
-    evaluation_id: UUID,
+    evaluation_id: int,
     db=Depends(get_db),
-    _: dict = Depends(get_current_user),
 ):
-    service.delete_research_evaluation(db, str(evaluation_id))
+    service.delete_research_evaluation(db, evaluation_id)
     return None

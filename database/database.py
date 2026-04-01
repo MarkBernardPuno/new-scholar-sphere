@@ -9,11 +9,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-<<<<<<< HEAD
     "postgresql://postgres:admin123@localhost:5432/NewScholarSphere",
-=======
-    "postgresql://user:password@localhost:5432/scholar_db",
->>>>>>> b96a08110657e89c15f427110eb642caa7c9a340
 )
 
 _pool: SimpleConnectionPool | None = None

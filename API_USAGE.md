@@ -25,16 +25,14 @@ These pages show all available endpoints, request/response formats, and allow yo
 ### 3. Example API Usage
 
 - **Base URL:** `http://localhost:8000`
-- **Authentication:** Most endpoints require JWT authentication. Obtain a token via the `/auth/login` endpoint.
+- **Authentication:** Endpoints are public and do not require a token.
 - **Headers:**
-  - `Authorization: Bearer <your_token>`
   - `Content-Type: application/json`
 
 #### Example: Fetch all users
 
 ```http
 GET /users
-Authorization: Bearer <your_token>
 ````
 
 #### Example: Create a campus
@@ -42,7 +40,6 @@ Authorization: Bearer <your_token>
 ```http
 POST /lookups/campuses
 Content-Type: application/json
-Authorization: Bearer <your_token>
 
 {
   "name": "Main Campus",
@@ -56,6 +53,7 @@ Authorization: Bearer <your_token>
 ## For Frontend Developers
 - Use the `/docs` endpoint for live API testing and to see all routes.
 - All endpoints, request bodies, and responses are documented there.
+- All IDs are integer auto-increment values.
 - If you need a sample request for a specific endpoint, check Swagger UI or ask the backend team.
 
 ---

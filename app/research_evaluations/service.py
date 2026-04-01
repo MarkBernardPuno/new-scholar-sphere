@@ -6,7 +6,7 @@ from database.database import fetch_all, fetch_one
 
 
 def create_research_evaluation(db, payload):
-    paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (str(payload.paper_id),))
+    paper = fetch_one(db, "SELECT id FROM research_papers WHERE id = %s", (payload.paper_id,))
     if not paper:
         raise HTTPException(status_code=400, detail="Paper not found")
 
@@ -22,7 +22,7 @@ def create_research_evaluation(db, payload):
                       journal_conference_info, created_at, updated_at
             """,
             (
-                str(payload.paper_id),
+                payload.paper_id,
                 payload.status,
                 payload.document_links,
                 payload.authorship_from_link,
@@ -35,7 +35,7 @@ def create_research_evaluation(db, payload):
         raise_db_http_error(db, exc, conflict_detail="Evaluation already exists for this paper")
 
 
-def list_research_evaluations(db, paper_id: str | None, status_value: str | None, search: str | None, skip: int, limit: int):
+def list_research_evaluations(db, paper_id: int | None, status_value: str | None, search: str | None, skip: int, limit: int):
     query = """
         SELECT id, paper_id, status, document_links, authorship_from_link,
                journal_conference_info, created_at, updated_at
@@ -59,7 +59,7 @@ def list_research_evaluations(db, paper_id: str | None, status_value: str | None
     return fetch_all(db, query, params)
 
 
-def get_research_evaluation(db, evaluation_id: str):
+def get_research_evaluation(db, evaluation_id: int):
     row = fetch_one(
         db,
         """
@@ -75,11 +75,11 @@ def get_research_evaluation(db, evaluation_id: str):
     return row
 
 
-def update_research_evaluation(db, evaluation_id: str, payload):
+def update_research_evaluation(db, evaluation_id: int, payload):
     current = get_research_evaluation(db, evaluation_id)
     update_data = payload.model_dump(exclude_unset=True)
 
-    next_paper_id = str(update_data.get("paper_id")) if update_data.get("paper_id") else str(current["paper_id"])
+    next_paper_id = update_data.get("paper_id") if update_data.get("paper_id") else current["paper_id"]
     next_status = update_data.get("status", current["status"])
     next_document_links = update_data.get("document_links", current["document_links"])
     next_authorship = update_data.get("authorship_from_link", current["authorship_from_link"])
@@ -108,7 +108,7 @@ def update_research_evaluation(db, evaluation_id: str, payload):
         raise_db_http_error(db, exc, conflict_detail="Evaluation already exists for this paper")
 
 
-def delete_research_evaluation(db, evaluation_id: str):
+def delete_research_evaluation(db, evaluation_id: int):
     try:
         deleted = fetch_one(db, "DELETE FROM research_evaluations WHERE id = %s RETURNING id", (evaluation_id,))
         if not deleted:
